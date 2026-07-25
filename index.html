@@ -223,7 +223,11 @@ section{position:relative;z-index:2;padding:clamp(90px,14vh,170px) clamp(20px,4v
 .chat-message.user .msg-meta{text-align:right}
 .msg-content{padding:13px 16px;border:1px solid var(--line);background:rgba(240,239,246,.025);color:#d9d7df;font-size:13px;font-weight:300;line-height:1.75;overflow-wrap:anywhere}
 .chat-message.user .msg-content{border-color:rgba(224,40,28,.28);background:rgba(224,40,28,.08);color:var(--ink)}
+.msg-content p{margin:0}.msg-content p+p{margin-top:10px}
+.msg-content ul,.msg-content ol{margin:10px 0 0 1.15em;padding:0}.msg-content li+li{margin-top:6px}.msg-content li::marker{color:var(--amber)}
+.msg-content pre{margin-top:10px;padding:11px 12px;border:1px solid var(--line);background:rgba(11,3,4,.72);overflow-x:auto}
 .msg-content strong{color:var(--ink);font-weight:500}.msg-content code{padding:2px 5px;background:rgba(240,239,246,.07);font-family:var(--mono);font-size:.88em;color:var(--violet)}
+.msg-content pre code{padding:0;background:transparent;color:#d9d7df}
 .msg-content a{color:var(--violet);border-bottom:1px dashed currentColor}
 .msg-status{display:flex;align-items:center;gap:8px;margin-top:8px;color:var(--amber);font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase}
 .msg-status:empty{display:none}.msg-status::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1s infinite}
@@ -901,24 +905,130 @@ const LOCAL_STATIC_PREVIEW =
 const CHAT_API_ROOT = LOCAL_STATIC_PREVIEW ? 'http://127.0.0.1:8765' : '';
 let chatHistory = [];
 let chatBusy = false;
+let chatScrollFrame = 0;
 
 function escapeChatHTML(value){
-  return value.replace(/[&<>"']/g, c=>({
+  return String(value || '').replace(/[&<>"']/g, c=>({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   })[c]);
 }
 
-function chatMarkdown(value){
-  let html = escapeChatHTML(value || '');
+function chatInlineMarkdown(value){
+  let html = escapeChatHTML(value);
   html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g,
     (_, label, url)=>`<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`);
   html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-  return html.replace(/\n/g, '<br>');
+  return html;
 }
 
-function scrollChat(){
-  if(chatLog) chatLog.scrollTo({top:chatLog.scrollHeight,behavior:reduced?'auto':'smooth'});
+function chatMarkdown(value){
+  const lines = String(value || '').replace(/\r\n/g,'\n').split('\n');
+  const html = [];
+  let paragraph = [];
+  let listType = '';
+  let inCode = false;
+  let codeLines = [];
+
+  const closeParagraph = ()=>{
+    if(paragraph.length){
+      html.push(`<p>${paragraph.map(chatInlineMarkdown).join('<br>')}</p>`);
+      paragraph = [];
+    }
+  };
+  const closeList = ()=>{
+    if(listType){
+      html.push(`</${listType}>`);
+      listType = '';
+    }
+  };
+
+  lines.forEach(line=>{
+    const trimmed = line.trim();
+    if(trimmed.startsWith('```')){
+      closeParagraph();
+      closeList();
+      if(inCode){
+        html.push(`<pre><code>${escapeChatHTML(codeLines.join('\n'))}</code></pre>`);
+        codeLines = [];
+        inCode = false;
+      }else{
+        inCode = true;
+      }
+      return;
+    }
+    if(inCode){
+      codeLines.push(line);
+      return;
+    }
+    if(!trimmed){
+      closeParagraph();
+      closeList();
+      return;
+    }
+
+    const bullet = line.match(/^\s*[-*]\s+(.+)/);
+    const numbered = line.match(/^\s*\d+[.)]\s+(.+)/);
+    if(bullet || numbered){
+      closeParagraph();
+      const nextType = numbered ? 'ol' : 'ul';
+      if(listType && listType !== nextType) closeList();
+      if(!listType){
+        listType = nextType;
+        html.push(`<${listType}>`);
+      }
+      html.push(`<li>${chatInlineMarkdown((bullet || numbered)[1])}</li>`);
+      return;
+    }
+
+    const heading = line.match(/^#{1,4}\s+(.+)/);
+    if(heading){
+      closeParagraph();
+      closeList();
+      html.push(`<p><strong>${chatInlineMarkdown(heading[1])}</strong></p>`);
+      return;
+    }
+
+    closeList();
+    paragraph.push(line);
+  });
+
+  closeParagraph();
+  closeList();
+  if(inCode) html.push(`<pre><code>${escapeChatHTML(codeLines.join('\n'))}</code></pre>`);
+  return html.join('') || '<p></p>';
+}
+
+function chatIsNearBottom(){
+  if(!chatLog) return true;
+  return chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight < 96;
+}
+
+function scrollChat(force=false){
+  if(!chatLog) return;
+  if(!force && !chatIsNearBottom()) return;
+  if(chatScrollFrame) return;
+  chatScrollFrame = requestAnimationFrame(()=>{
+    chatScrollFrame = 0;
+    chatLog.scrollTo({top:chatLog.scrollHeight,behavior:'auto'});
+  });
+}
+
+function renderAssistantFrame(assistant, text, force=false){
+  assistant.pendingText = text;
+  if(force){
+    if(assistant.renderFrame) cancelAnimationFrame(assistant.renderFrame);
+    assistant.renderFrame = 0;
+    assistant.content.innerHTML = chatMarkdown(assistant.pendingText);
+    scrollChat(true);
+    return;
+  }
+  if(assistant.renderFrame && !force) return;
+  assistant.renderFrame = requestAnimationFrame(()=>{
+    assistant.renderFrame = 0;
+    assistant.content.innerHTML = chatMarkdown(assistant.pendingText);
+    scrollChat();
+  });
 }
 
 if(chatLog){
@@ -949,11 +1059,13 @@ function addChatMessage(role, content, pending=false){
       <div class="msg-status"></div>
     </div>`;
   chatLog.appendChild(item);
-  scrollChat();
+  scrollChat(true);
   return {
     item,
     content: item.querySelector('.msg-content'),
-    status: item.querySelector('.msg-status')
+    status: item.querySelector('.msg-status'),
+    pendingText: content || '',
+    renderFrame: 0
   };
 }
 
@@ -1015,6 +1127,7 @@ async function sendChatMessage(rawMessage){
   chatInput.value = '';
   charCount.textContent = '0 / 4000';
   setChatBusy(true);
+  assistant.status.textContent = 'Connecting';
 
   try{
     const response = await fetch(`${CHAT_API_ROOT}/api/chat`,{
@@ -1046,9 +1159,8 @@ async function sendChatMessage(rawMessage){
         if(!packet) continue;
         if(packet.event === 'delta'){
           assistantText += packet.payload.text || '';
-          assistant.content.innerHTML = chatMarkdown(assistantText);
+          renderAssistantFrame(assistant, assistantText);
           assistant.status.textContent = '';
-          scrollChat();
         }else if(packet.event === 'status'){
           assistant.status.textContent = packet.payload.text || '';
           scrollChat();
@@ -1061,11 +1173,14 @@ async function sendChatMessage(rawMessage){
 
     if(streamError) throw new Error(streamError);
     if(!assistantText.trim()) throw new Error('The assistant returned an empty response.');
+    renderAssistantFrame(assistant, assistantText, true);
     assistant.status.textContent = '';
     chatHistory.push({role:'assistant',content:assistantText});
     chatHistory = chatHistory.slice(-18);
     saveChat();
   }catch(error){
+    if(assistant.renderFrame) cancelAnimationFrame(assistant.renderFrame);
+    assistant.renderFrame = 0;
     assistant.content.textContent = error.message || 'A temporary error interrupted the response.';
     assistant.status.textContent = 'Request interrupted';
     assistant.item.classList.add('error');
