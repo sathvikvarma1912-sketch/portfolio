@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{.venv/**,tests/**,twin/linkedin.pdf,twin/app.py,twin/styles.py,twin/summary.txt,inspect_gradio.py}"
+    }
+  }
+}

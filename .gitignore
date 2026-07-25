@@ -1,0 +1,12 @@
+.env
+.venv/
+.vercel/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+qa-*.png
+inspect_gradio.py
+twin/app.py
+twin/styles.py
+twin/summary.txt
+twin/linkedin.pdf
