@@ -897,7 +897,6 @@ const chatSend = document.getElementById('chat-send');
 const chatReset = document.getElementById('chat-reset');
 const charCount = document.getElementById('char-count');
 const chatConnection = document.getElementById('chat-connection');
-const CHAT_STORAGE_KEY = 'sathvik-ai-twin-v2';
 const LOCAL_STATIC_PREVIEW =
   location.protocol === 'file:' ||
   ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') &&
@@ -1069,27 +1068,6 @@ function addChatMessage(role, content, pending=false){
   };
 }
 
-function saveChat(){
-  try{
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory.slice(-18)));
-  }catch(_){}
-}
-
-function restoreChat(){
-  try{
-    const saved = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || '[]');
-    if(Array.isArray(saved)){
-      chatHistory = saved
-        .filter(m=>m && (m.role==='user'||m.role==='assistant') && typeof m.content==='string')
-        .map(m=>({role:m.role,content:m.content.slice(0,4000)}))
-        .slice(-18);
-    }
-  }catch(_){ chatHistory = []; }
-  if(chatHistory.length){
-    chatHistory.forEach(m=>addChatMessage(m.role,m.content));
-  }
-}
-
 function setChatBusy(value){
   chatBusy = value;
   chatInput.disabled = value;
@@ -1118,7 +1096,6 @@ async function sendChatMessage(rawMessage){
 
   chatHistory.push({role:'user',content:message});
   chatHistory = chatHistory.slice(-18);
-  saveChat();
   addChatMessage('user',message);
   const assistant = addChatMessage('assistant','',true);
   let assistantText = '';
@@ -1177,7 +1154,6 @@ async function sendChatMessage(rawMessage){
     assistant.status.textContent = '';
     chatHistory.push({role:'assistant',content:assistantText});
     chatHistory = chatHistory.slice(-18);
-    saveChat();
   }catch(error){
     if(assistant.renderFrame) cancelAnimationFrame(assistant.renderFrame);
     assistant.renderFrame = 0;
@@ -1207,7 +1183,7 @@ async function checkChatConnection(){
 }
 
 if(chatForm){
-  restoreChat();
+  try{ localStorage.removeItem('sathvik-ai-twin-v2'); }catch(_){}
   checkChatConnection();
   chatForm.addEventListener('submit',event=>{
     event.preventDefault();
@@ -1228,7 +1204,6 @@ if(chatForm){
     button.addEventListener('click',()=>sendChatMessage(button.dataset.chatPrompt));
   });
   chatReset.addEventListener('click',()=>{
-    localStorage.removeItem(CHAT_STORAGE_KEY);
     chatHistory = [];
     chatLog.querySelectorAll('.chat-message').forEach(message=>message.remove());
     chatWelcome.hidden = false;
