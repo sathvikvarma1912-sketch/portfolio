@@ -26,7 +26,8 @@
   --mono:'IBM Plex Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{background:var(--bg)}
+html{width:100%;max-width:100%;overflow-x:hidden;background:var(--bg)}
+body{width:100%;max-width:100%;overflow-x:hidden;background:var(--bg)}
 html.lenis{height:auto}
 .lenis.lenis-smooth{scroll-behavior:auto}
 body{
@@ -95,14 +96,14 @@ nav .clock{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(
 @media(max-width:900px){.hero-quote{text-align:center}}
 
 /* ============ CAVALRY MARQUEE ============ */
-.cavalry{position:relative;z-index:2;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:clamp(60px,9vh,110px);padding:14px 0;overflow:hidden;background:var(--bg)}
+.cavalry{position:relative;z-index:2;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:clamp(60px,9vh,110px);padding:14px 0;overflow:hidden;overflow-x:clip;contain:paint;background:var(--bg)}
 .cavalry .ctrack{display:flex;width:max-content;white-space:nowrap;will-change:transform;animation:cav 40s linear infinite}
 .cavalry span{font-family:var(--mono);font-weight:400;text-transform:uppercase;font-size:clamp(11px,1.1vw,13px);letter-spacing:.35em;color:var(--dim)}
 .cavalry span i{font-style:normal;color:var(--amber);padding:0 1.6em;font-size:.8em;vertical-align:middle;letter-spacing:0}
 @keyframes cav{to{transform:translateX(-50%)}}
 
 /* ============ GENERIC SECTION ============ */
-section{position:relative;z-index:2;padding:clamp(90px,14vh,170px) clamp(20px,4vw,56px)}
+section{position:relative;z-index:2;padding:clamp(90px,14vh,170px) clamp(20px,4vw,56px);overflow:hidden}
 .ghost{position:absolute;top:6%;left:0;font-family:var(--disp);font-weight:900;text-transform:uppercase;font-size:clamp(90px,20vw,300px);line-height:1;color:transparent;-webkit-text-stroke:1px rgba(240,239,246,.06);white-space:nowrap;pointer-events:none;user-select:none}
 .shead{display:flex;align-items:baseline;gap:22px;margin-bottom:clamp(48px,7vh,84px);position:relative}
 .shead .idx{font-family:var(--mono);font-size:12px;color:var(--amber);letter-spacing:.2em}
@@ -241,7 +242,7 @@ section{position:relative;z-index:2;padding:clamp(90px,14vh,170px) clamp(20px,4v
 .compose-note{margin-top:9px;color:#555467;font-family:var(--mono);font-size:7px;letter-spacing:.12em;text-transform:uppercase}
 .bot-note{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:15px;letter-spacing:.08em}
 @media(max-width:820px){.twin-console{grid-template-columns:1fr}.twin-rail{display:none}.chat-log{height:570px}.bot-bar{padding:13px 15px}.bot-id span:last-child{display:none}}
-@media(max-width:560px){.bot-wrap{border-radius:15px}.chat-log{height:520px;padding:24px 14px}.chat-welcome{justify-content:flex-start;padding-top:18px}.prompt-grid{grid-template-columns:1fr}.prompt-chip{min-height:0}.chat-compose{padding:13px}.compose-note{display:none}.msg-body{max-width:96%}}
+@media(max-width:560px){.bot-wrap{border-radius:15px}.chat-log{height:520px;padding:24px 14px}.chat-welcome{justify-content:flex-start;padding-top:18px}.prompt-grid{grid-template-columns:1fr}.prompt-chip{min-height:0}.chat-compose{padding:13px}.compose-note{display:none}.msg-body{max-width:96%}.htrack{grid-template-columns:1fr}.btn{max-width:100%;padding:16px 20px;text-align:center;overflow-wrap:anywhere}}
 
 /* ============ CONTACT ============ */
 .contact .big{font-family:var(--disp);font-weight:900;text-transform:uppercase;font-size:clamp(34px,9vw,130px);line-height:1.02;letter-spacing:-.015em}
@@ -255,7 +256,7 @@ section{position:relative;z-index:2;padding:clamp(90px,14vh,170px) clamp(20px,4v
 .btn:hover{border-color:var(--violet);color:var(--violet)}
 footer{position:relative;z-index:2;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:28px clamp(20px,4vw,56px);border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
 
-.skew-wrap{will-change:transform}
+.skew-wrap{width:100%;max-width:100%;overflow:hidden;will-change:transform}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
